@@ -1,8 +1,41 @@
 module openzwave.types;
 
+// alias stdstring = basic_string!char;
 import core.stdcpp.string;
 
-alias stdstring = basic_string!char;
+void* empty_rep_storage;
+Rep* dlang_empty_rep_storage;
+
+pragma(mangle, "_ZNSs4_Rep12_S_empty_repEv")
+extern void* empty_rep();
+
+alias Rep = __traits(getMember, basic_string!(char), "_Rep");
+
+shared static this() {
+  empty_rep_storage = empty_rep();
+  dlang_empty_rep_storage = &(Rep._S_empty_rep());
+}
+struct stdstring {
+  basic_string!char _base;
+  alias _base this;
+  this(DefaultConstruct) {
+    _base = basic_string!(char)(DefaultConstruct.value);
+  }
+  this(const(char)[] str) {
+    _base = basic_string!char(str);
+  }
+  ~this() {
+    import std.stdio;
+
+    const rep = &(cast(Rep*)__traits(getMember, _base, "_M_data"))[-1];
+    if (rep == empty_rep_storage) {
+      __traits(getMember, _base, "_M_data") = dlang_empty_rep_storage._M_refdata;
+    }
+  }
+  static stdstring def() {
+    return stdstring(DefaultConstruct.value);
+  }
+}
 
 enum NotificationType {
   ValueAdded = 0, /**< A new node value has been added to OpenZWave's list. These notifications occur after a node has been discovered, and details of its command classes have been received.  Each command class may generate one or more values depending on the complexity of the item being represented.  */

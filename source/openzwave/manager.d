@@ -47,6 +47,7 @@ extern extern (C++, "OpenZWave") {
     static void Destroy();
     bool AddWatcher(pfnOnNotification_t _watcher, void* _context);
     bool RemoveWatcher(pfnOnNotification_t _watcher, void* _context);
+    static stdstring getVersionAsString();
     pragma(mangle, "_ZN9OpenZWave7Manager9AddDriverERKSsRKNS_6Driver19ControllerInterfaceE")
     bool AddDriver(ref const stdstring _controllerPath, const ref ControllerInterface _interface);
     /**
@@ -171,7 +172,7 @@ extern extern (C++, "OpenZWave") {
      * \param _nodeId The ID of the node to query.
      * \return the node's generic type.
      */
-    ubyte GetNodeGeneric(uint _homeId, ubyte _nodeId);
+    ubyte GetNodeGeneric(uint _homeId, ubyte _nodeId, ubyte _instance = 0);
     ubyte GetNodeGeneric(ref const ValueID val) {
       return GetNodeGeneric(val.homeId, val.nodeId);
     }
@@ -182,7 +183,7 @@ extern extern (C++, "OpenZWave") {
      * \param _nodeId The ID of the node to query.
      * \return the node's specific type.
      */
-    ubyte GetNodeSpecific(uint _homeId, ubyte _nodeId);
+    ubyte GetNodeSpecific(uint _homeId, ubyte _nodeId, ubyte _instance = 0);
     ubyte GetNodeSpecific(ref const ValueID val) {
       return GetNodeSpecific(val.homeId, val.nodeId);
     }
@@ -704,6 +705,14 @@ extern extern (C++, "OpenZWave") {
      */
     bool GetValueAsString(const ref ValueID _id, stdstring* o_value);
 
+    pragma(mangle, "_ZN9OpenZWave7Manager16GetValueAsStringERKNS_7ValueIDEPSs")
+    bool GetValueAsFakeString(const ref ValueID _id, FakeString* o_value);
+
+    struct FakeString {
+      ubyte[stdstring.sizeof] data;
+    }
+
+    // bool GetValueAsString(const ref ValueID _id, stdstring* )
     /**
      * \brief Gets a value as a collection of bytes.
      * \param _id The unique identifier of the value.

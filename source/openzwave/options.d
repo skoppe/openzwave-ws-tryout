@@ -8,6 +8,7 @@ extern extern (C++, "OpenZWave") {
     static Options* Create(ref const stdstring _configPath, ref const stdstring _userPath, ref const stdstring _commandLine);
     static Options* Get();
     bool Lock();
+    pragma(mangle, "_ZN9OpenZWave7Options12AddOptionIntERKSsi")
     bool AddOptionInt(const ref stdstring _name, int _default);
     bool AddOptionBool(const ref stdstring _name, bool _default);
     pragma(mangle, "_ZN9OpenZWave7Options15AddOptionStringERKSsS2_b")

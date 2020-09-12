@@ -58,6 +58,12 @@ extern extern (C++, "OpenZWave") {
     {
       return (cast(ValueType) (m_id & 0x0000000f));
     }
+    this(uint _homeId, ubyte _nodeId, ValueGenre _genre, ubyte _commandClassId, ubyte _instance, ushort _valueIndex, ValueType _type)
+    {
+      m_homeId = _homeId;
+      m_id = ((cast(uint) _nodeId) << 24) | ((cast(uint) _genre) << 22) | ((cast(uint) _commandClassId) << 14) | ((cast(uint) (_instance & 0xFF)) << 4) | (cast(uint) _type);
+      m_id1 = ((cast(uint) _valueIndex) << 16);
+    }
   private:
     uint m_id;
     uint m_id1;
