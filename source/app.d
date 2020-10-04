@@ -25,11 +25,14 @@ class Logger {
   void nodeAdded(ref const Node node) {
     logInfo("Node added %s", node);
   }
+  void nodeUpdated(ref const Node node) {
+    logInfo("Node updated %s", node);
+  }
   void valueAdded(ref const Node node, ref const Value value) {
-    logInfo("value added [%s:%s]: %s (%s:%s) = %s", value.homeId, value.id, value.label, value.genre, value.type, value.value);
+    logInfo("value added [%s] [%s:%s:%s:%s:%s]: %s (%s:%s) = %s", value.id, value.homeId, value.nodeId, value.index, value.commandClass, value.instance, value.label, value.genre, value.type, value.value);
   }
   void valueChanged(ref const Node node, ref const Value value) {
-    logInfo("value changed [%s:%s]: %s (%s:%s) = %s", value.homeId, value.id, value.label, value.genre, value.type, value.value);
+    logInfo("value changed [%s] [%s:%s:%s:%s:%s]: %s (%s:%s) = %s", value.id, value.homeId, value.nodeId, value.index, value.commandClass, value.instance, value.label, value.genre, value.type, value.value);
   }
 }
 
