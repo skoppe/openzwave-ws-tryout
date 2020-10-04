@@ -31,12 +31,12 @@ class Connector {
         manager.AddDriver(stdport, cInterface);
         this.task = Task.getThis;
         logInfo("Start Listening");
-        manager.AddWatcher(&onNotification, cast(void*)&task);
+        manager.AddWatcher(&onNotification, cast(void*)this);
         import core.time;
         while(running) {
-          receiveTimeout(msecs(10),&this.groupNotification,&this.basicNotification,&this.nodeEventNotification,&this.controllerNotification,&this.buttonNotification);
+          receiveTimeout(msecs(100),&this.groupNotification,&this.nodeEventNotification,&this.controllerNotification,&this.buttonNotification,&this.dispatcher.onNodeAdded,&this.dispatcher.onNodeUpdated,&this.dispatcher.onNodeRemoved,&this.dispatcher.onValueAdded,&this.dispatcher.onValueChanged,&this.dispatcher.onValueRemoved);
         }
-        manager.RemoveWatcher(&onNotification, cast(void*)&task);
+        manager.RemoveWatcher(&onNotification, cast(void*)this);
         logInfo("Stop listening");
       });
   }
@@ -65,25 +65,26 @@ private:
   bool running = true;
   Task task;
   extern(C++) static void onNotification(const Notification* notification, void* context) {
-    auto task = (*cast(Task*)context);
+    Connector self = cast(Connector)context;
+    auto receiver = self.task.tid;
     auto type = notification.type;
     auto val = notification.valueId;
     switch (type) {
     case NotificationType.Group:
-      return task.tid.send(GroupNotification(*notification));
+      return receiver.send(GroupNotification(*notification));
     case NotificationType.NodeEvent:
-      return task.tid.send(NodeEventNotification(*notification));
+      return receiver.send(NodeEventNotification(*notification));
     case NotificationType.ControllerCommand:
-      return task.tid.send(ControllerNotification(*notification));
+      return receiver.send(ControllerNotification(*notification));
     case NotificationType.CreateButton:
     case NotificationType.DeleteButton:
     case NotificationType.ButtonOn:
     case NotificationType.ButtonOff:
-      return task.tid.send(ButtonNotification(*notification));
+      return receiver.send(ButtonNotification(*notification));
     case NotificationType.Notification:
-      return task.tid.send(ErrorNotification(*notification));
+      return receiver.send(ErrorNotification(*notification));
     default:
-      return task.tid.send(BasicNotification(*notification));
+      return self.basicNotification(BasicNotification(*notification));
     }
   }
   Manager* manager;
@@ -92,7 +93,7 @@ private:
     auto clsId = event.valueId.commandClassId;
     auto instance = event.valueId.instance;
     auto index = event.valueId.index;
-    return (cast(ulong)nodeId) << 32 | clsId << 24 | instance << 16 | index;
+    return (cast(ulong)nodeId) << 32 | (cast(ulong)clsId) << 24 | (cast(ulong)instance) << 16 | index;
   }
   ValueContent getValueContent(ref BasicNotification event) {
     auto value = event.valueId;
@@ -137,9 +138,8 @@ private:
   }
   void groupNotification(GroupNotification event) {}
   void basicNotification(BasicNotification event) {
-    with (BasicNotificationType) {
       switch (event.type) {
-      case NodeAdded:
+      case BasicNotificationType.NodeAdded:
         auto valueId = event.valueId;
         auto homeId = valueId.homeId;
         auto nodeId = valueId.nodeId;
@@ -150,36 +150,46 @@ private:
         auto type = manager.getNodeType(valueId);
         ulong id = getNodeIdentifier(valueId);
         auto node = Node(manager.GetNodeBasic(valueId), type, type.getGenericClass, homeId, nodeId, manuId, productId, manufacturer, product, id);
-        dispatcher.onNodeAdded(node);
+        task.tid.send(NodeAdded(node));
         return;
-      case NodeRemoved:
+      // case NodeProtocolInfo:
+      case BasicNotificationType.NodeQueriesComplete:
+      case BasicNotificationType.NodeNaming:
+        auto valueId = event.valueId;
+        auto homeId = valueId.homeId;
+        auto nodeId = valueId.nodeId;
+        ushort manuId = manager.GetNodeManufacturerId(homeId, nodeId).c_str().fromStringz()[2..$].to!ushort(16);
+        ushort productId = manager.GetNodeProductId(homeId, nodeId).c_str().fromStringz()[2..$].to!ushort(16);
+        auto product = manager.GetNodeProductName(homeId, nodeId).c_str().fromStringz().to!string;
+        auto manufacturer = manager.GetNodeManufacturerName(homeId, nodeId).c_str().fromStringz().to!string;
+        auto type = manager.getNodeType(valueId);
+        ulong id = getNodeIdentifier(valueId);
+        auto node = Node(manager.GetNodeBasic(valueId), type, type.getGenericClass, homeId, nodeId, manuId, productId, manufacturer, product, id);
+        task.tid.send(NodeUpdated(node));
+        return;
+      case BasicNotificationType.NodeRemoved:
         ulong id = getNodeIdentifier(event.valueId);
-        auto node = dispatcher.nodes[id];
-        dispatcher.onNodeRemoved(node);
+        task.tid.send(NodeRemoved(id));
         return;
-      case ValueAdded:
+      case BasicNotificationType.ValueAdded:
         auto valueId = event.valueId;
         auto label = manager.GetValueLabel(valueId).c_str().fromStringz.to!string;
         auto id = getValueIdentifier(event);
-        // store time with Value, update time with when updateValue is called, then when ValueChanged is received in less than 5 sec. and value != value in list, updateValue again
         auto value = Value(valueId.homeId, valueId.nodeId, label, cast(CommandClass)valueId.commandClassId, valueId.instance, valueId.index, valueId.genre, valueId.type, getValueContent(event), manager.IsValueReadOnly(valueId), id);
-        dispatcher.onValueAdded(value);
+        task.tid.send(cast(immutable)ValueAdded(value));
         return;
-      case ValueChanged:
+      case BasicNotificationType.ValueChanged:
         auto valId = getValueIdentifier(event);
         auto content = getValueContent(event);
-        auto value = dispatcher.values[valId];
-        value.value = content;
-        dispatcher.onValueChanged(value);
+        task.tid.send(cast(immutable)ValueChanged(valId, content));
         return;
-      case ValueRemoved:
+      case BasicNotificationType.ValueRemoved:
         auto valId = getValueIdentifier(event);
-        dispatcher.onValueRemoved(dispatcher.values[valId]);
+        task.tid.send(ValueRemoved(valId));
         return;
       default:
         return;
       }
-    }
   }
   void nodeEventNotification(NodeEventNotification event) {}
   void controllerNotification(ControllerNotification event) {}

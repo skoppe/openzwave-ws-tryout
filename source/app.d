@@ -186,6 +186,11 @@ struct ValueChanged {
   string message = "value-changed";
 }
 
+struct NodeUpdated {
+  Node node;
+  string message = "node-updated";
+}
+
 struct Shutdown {
   string message = "shutdown";
 }
@@ -197,6 +202,9 @@ struct SocketDispatcher {
   }
   void nodeAdded(ref const Node node) @trusted {
     socket.send(NodeAddedMessage(node).serializeToJsonString()).tryIt;
+  }
+  void nodeUpdated(ref const Node node) @trusted {
+    socket.send(NodeUpdated(node).serializeToJsonString()).tryIt;
   }
   void valueAdded(ref const Node node, ref const Value value)@trusted  {
     socket.send(ValueAdded(value).serializeToJsonString()).tryIt;

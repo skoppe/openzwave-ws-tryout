@@ -10,6 +10,7 @@ class Dispatcher {
   alias OnValueRemoved = void delegate(ref const Node node, ref const Value value);
   alias OnNodeRemoved = void delegate(ref const Node node);
   alias OnNodeAdded = void delegate(ref const Node node);
+  alias OnNodeUpdated = void delegate(ref const Node node);
   this(){
     mutex = new Mutex;
   }
@@ -35,6 +36,9 @@ class Dispatcher {
     static if (hasMember!(T, "nodeRemoved")) {
       nodeRemoved ~= &t.nodeRemoved;
     }
+    static if (hasMember!(T, "nodeUpdated")) {
+      nodeUpdated ~= &t.nodeUpdated;
+    }
   }
   void remove(T)(auto ref T t) {
     mutex.lock();
@@ -55,26 +59,36 @@ class Dispatcher {
     static if (hasMember!(T, "nodeAdded")) {
       nodeAdded = nodeAdded.remove(nodeAdded.countUntil(&t.nodeAdded));
     }
+    static if (hasMember!(T, "nodeUpdated")) {
+      nodeUpdated = nodeUpdated.remove(nodeUpdated.countUntil(&t.nodeUpdated));
+    }
   }
-  void onValueAdded(const ref Value value) {
-    values[value.id] = value;
-    dispatch!(valueAdded)(nodes[value.getNodeIdentifier()],value);
+  void onValueAdded(immutable ValueAdded message) {
+    values[message.value.id] = message.value;
+    dispatch!(valueAdded)(nodes[message.value.getNodeIdentifier],message.value);
   }
-  void onValueChanged(const ref Value value) {
-    values[value.id] = value;
-    dispatch!(valueChanged)(nodes[value.getNodeIdentifier()],value);
+  void onValueChanged(immutable ValueChanged message) {
+    values[message.valueId].value = message.content;
+    auto value = values[message.valueId];
+    dispatch!(valueChanged)(nodes[value.getNodeIdentifier],value);
   }
-  void onValueRemoved(const ref Value value) {
-    values.remove(value.id);
-    dispatch!(valueRemoved)(nodes[value.getNodeIdentifier()],value);
+  void onValueRemoved(ValueRemoved message) {
+    auto oldVal = values[message.valueId];
+    values.remove(message.valueId);
+    dispatch!(valueRemoved)(nodes[oldVal.getNodeIdentifier()],oldVal);
   }
-  void onNodeAdded(const ref Node node) {
-    nodes[node.id] = node;
-    dispatch!(nodeAdded)(node);
+  void onNodeAdded(NodeAdded message) {
+    nodes[message.node.id] = message.node;
+    dispatch!(nodeAdded)(message.node);
   }
-  void onNodeRemoved(const ref Node node) {
-    nodes.remove(node.id);
-    dispatch!(nodeRemoved)(node);
+  void onNodeRemoved(NodeRemoved message) {
+    auto oldNode = nodes[message.nodeId];
+    nodes.remove(message.nodeId);
+    dispatch!(nodeRemoved)(oldNode);
+  }
+  void onNodeUpdated(NodeUpdated message) {
+    nodes[message.node.id] = message.node;
+    dispatch!(nodeUpdated)(message.node);
   }
   Node[ulong] nodes;
   Value[ulong] values;
@@ -91,4 +105,25 @@ private:
   OnValueRemoved[] valueRemoved;
   OnNodeRemoved[] nodeRemoved;
   OnNodeAdded[] nodeAdded;
+  OnNodeUpdated[] nodeUpdated;
+}
+
+struct NodeAdded {
+  Node node;
+}
+struct NodeUpdated {
+  Node node;
+}
+struct NodeRemoved {
+  size_t nodeId;
+}
+struct ValueAdded {
+  Value value;
+}
+struct ValueChanged {
+  size_t valueId;
+  ValueContent content;
+}
+struct ValueRemoved {
+  size_t valueId;
 }
