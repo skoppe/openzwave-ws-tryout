@@ -98,7 +98,7 @@ void main() {
   auto options = Options.Create(configDir, userDir, emptyString);
   auto logLevelStr = stdstring("SaveLogLevel");
 
-  options.AddOptionInt(logLevelStr, openzwave.types.LogLevel.Debug );
+  options.AddOptionInt(logLevelStr, openzwave.types.LogLevel.Alert );
   stdstring val = stdstring(DefaultConstruct.value);
   auto configPathName = stdstring("ConfigPath");
   options.Lock();
