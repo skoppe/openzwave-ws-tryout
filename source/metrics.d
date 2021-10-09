@@ -28,7 +28,7 @@ struct Gauge(T) {
     import std.format;
     import std.algorithm : map;
     auto labels = this.labels.byKeyValue().map!(kv => format(`%s="%s"`, kv.key, kv.value));
-    return format("%s{%-(%s,%)} %s", name.toSlug, labels, value);
+    return format("%s{%-(%s, %)} %s", name.toSlug, labels, value);
   }
 }
 
@@ -41,7 +41,7 @@ struct Toggle {
     import std.format;
     import std.algorithm : map;
     auto labels = this.labels.byKeyValue().map!(kv => format(`%s="%s"`, kv.key, kv.value));
-    return format("%s{%s=\"%s\",%-(%s,%)} %s", name.toSlug, name.toSlug, value ? "on": "off", labels, value ? "1" : "0");
+    return format("%s{%s=\"%s\", %-(%s, %)} %s", name.toSlug, name.toSlug, value ? "on": "off", labels, value ? "1" : "0");
   }
 }
 
@@ -69,7 +69,7 @@ unittest {
   import std.datetime.date : DateTime;
   import std.datetime.timezone : UTC;
   auto time = SysTime(DateTime(2018, 1, 1, 10, 30, 0), UTC());
-  Toggle("Switch", ["node":"light"], false, time).toString().should == `switch{switch="off",node="light"} 0`;
+  Toggle("Switch", ["node":"light"], false, time).toString().should == `switch{switch="off", node="light"} 0`;
 }
 
 alias Metric = SumType!(Gauge!long, Gauge!double, Toggle);
@@ -84,9 +84,11 @@ class Metrics {
   }
   void addMetric(ref const Node node, ref const Value value) {
     import std.datetime.systime : Clock;
+    import std.conv : to;
     string name = value.label.toSlug;
     string[string] labels;
-    labels["node"] = node.name;
+    labels["node"] = node.name.length == 0 ? node.productName : node.name;
+    labels["id"] = node.nodeId.to!string;
     auto now = Clock.currTime();
     auto metric = value.value.match!((bool b){
         return nullable(Metric(Toggle(name, labels, b, now)));
