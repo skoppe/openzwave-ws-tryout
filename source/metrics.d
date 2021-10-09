@@ -28,7 +28,7 @@ struct Gauge(T) {
     import std.format;
     import std.algorithm : map;
     auto labels = this.labels.byKeyValue().map!(kv => format(`%s="%s"`, kv.key, kv.value));
-    return format("%s{%-(%s,%)} %s %s", name.toSlug, labels, value, timestamp.toUnixTime);
+    return format("%s{%-(%s,%)} %s", name.toSlug, labels, value);
   }
 }
 
@@ -41,7 +41,7 @@ struct Toggle {
     import std.format;
     import std.algorithm : map;
     auto labels = this.labels.byKeyValue().map!(kv => format(`%s="%s"`, kv.key, kv.value));
-    return format("%s{%s=\"%s\",%-(%s,%)} %s %s", name.toSlug, name.toSlug, value ? "on": "off", labels, value ? "1" : "0", timestamp.toUnixTime);
+    return format("%s{%s=\"%s\",%-(%s,%)} %s", name.toSlug, name.toSlug, value ? "on": "off", labels, value ? "1" : "0");
   }
 }
 
@@ -51,7 +51,7 @@ unittest {
   import std.datetime.date : DateTime;
   import std.datetime.timezone : UTC;
   auto time = SysTime(DateTime(2018, 1, 1, 10, 30, 0), UTC());
-  Gauge!double("Air Temperature", ["node":"Kitchen"], 22.0, time).toString().should == `air_temperature{node="Kitchen"} 22 1514802600`;
+  Gauge!double("Air Temperature", ["node":"Kitchen"], 22.0, time).toString().should == `air_temperature{node="Kitchen"} 22`;
 }
 
 @("gauge.long.toString")
@@ -60,7 +60,7 @@ unittest {
   import std.datetime.date : DateTime;
   import std.datetime.timezone : UTC;
   auto time = SysTime(DateTime(2018, 1, 1, 10, 30, 0), UTC());
-  Gauge!long("Air Temperature", ["node":"Kitchen"], 22, time).toString().should == `air_temperature{node="Kitchen"} 22 1514802600`;
+  Gauge!long("Air Temperature", ["node":"Kitchen"], 22, time).toString().should == `air_temperature{node="Kitchen"} 22`;
 }
 
 @("toggle.toString")
@@ -69,7 +69,7 @@ unittest {
   import std.datetime.date : DateTime;
   import std.datetime.timezone : UTC;
   auto time = SysTime(DateTime(2018, 1, 1, 10, 30, 0), UTC());
-  Toggle("Switch", ["node":"light"], false, time).toString().should == `switch{switch="off",node="light"} 0 1514802600`;
+  Toggle("Switch", ["node":"light"], false, time).toString().should == `switch{switch="off",node="light"} 0`;
 }
 
 alias Metric = SumType!(Gauge!long, Gauge!double, Toggle);
