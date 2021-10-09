@@ -372,7 +372,8 @@ extern extern (C++, "OpenZWave") {
      * \param _nodeName A stdstring containing the node's name.
      * \see GetNodeName, GetNodeLocation, SetNodeLocation
      */
-    void setNodeName(uint _homeId, ubyte _nodeId, ref const stdstring _nodeName);
+    pragma(mangle, "_ZN9OpenZWave7Manager11SetNodeNameEjhRKSs")
+    void SetNodeName(uint _homeId, ubyte _nodeId, ref const stdstring _nodeName);
 
     /**
      * \brief Set the location of a node

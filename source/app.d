@@ -115,10 +115,19 @@ void main() {
         while(socket.waitForData()) {
           try {
             Json msg = socket.receiveText().parseJsonString();
-            auto valId = msg["id"].get!string.to!ulong;
-            logInfo(" received: %s", msg);
-            logInfo(" valid : %s", valId);
-            connector.updateValue(valId, msg["value"]);
+            import std.stdio;
+            writeln("Received ", msg);
+            if (msg["type"] == "setvalue") {
+              auto valId = msg["id"].get!string.to!ulong;
+              logInfo(" received: %s", msg);
+              logInfo(" valid : %s", valId);
+              connector.updateValue(valId, msg["value"]);
+            } else if (msg["type"] == "setnodename") {
+              auto nodeId = msg["nodeId"].get!uint.to!ubyte;
+              auto homeId = msg["homeId"].get!uint;
+              auto name = msg["value"].get!string;
+              connector.setNodeName(homeId, nodeId, name);
+            }
           } catch (Exception e) {}
         }
       } catch (InterruptException e) {

@@ -16,6 +16,7 @@ struct Node {
   ushort productId;
   string manufacturerName;
   string productName;
+  string name;
   ulong id;
 }
 
@@ -29,7 +30,7 @@ struct List {
 }
 
 struct Button {
-  // empty for now
+  // a write only button with no state;
 }
 
 struct BitSet {

@@ -15,6 +15,8 @@ class Dispatcher {
     mutex = new Mutex;
   }
   void add(T)(auto ref T t) @trusted {
+    import std.array : array;
+    import std.algorithm : sort;
     mutex.lock();
     scope(exit) mutex.unlock();
     static if (hasMember!(T, "nodeAdded")) {
@@ -24,7 +26,7 @@ class Dispatcher {
     }
     static if (hasMember!(T, "valueAdded")) {
       valueAdded ~= &t.valueAdded;
-      foreach(v; values.values)
+      foreach(v; values.values.array.sort!((a,b) => a.index < b.index))
         t.valueAdded(nodes[v.getNodeIdentifier], v);
     }
     static if (hasMember!(T, "valueChanged")) {
@@ -126,4 +128,14 @@ struct ValueChanged {
 }
 struct ValueRemoved {
   size_t valueId;
+}
+struct ButtonAdded {
+  Value value;
+}
+struct ButtonRemoved {
+  size_t valueId;
+}
+struct ButtonChanged {
+  size_t valueId;
+  ValueContent content;
 }

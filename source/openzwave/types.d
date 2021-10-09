@@ -3,8 +3,7 @@ module openzwave.types;
 // alias stdstring = basic_string!char;
 import core.stdcpp.string;
 
-void* empty_rep_storage;
-Rep* dlang_empty_rep_storage;
+// Rep* dlang_empty_rep_storage;
 
 pragma(mangle, "_ZNSs4_Rep12_S_empty_repEv")
 extern void* empty_rep();
@@ -12,8 +11,7 @@ extern void* empty_rep();
 alias Rep = __traits(getMember, basic_string!(char), "_Rep");
 
 shared static this() {
-  empty_rep_storage = empty_rep();
-  dlang_empty_rep_storage = &(Rep._S_empty_rep());
+  // dlang_empty_rep_storage = cast(Rep*)(Rep._S_empty_rep_storage.ptr);
 }
 struct stdstring {
   basic_string!char _base;
@@ -28,8 +26,10 @@ struct stdstring {
     import std.stdio;
 
     const rep = &(cast(Rep*)__traits(getMember, _base, "_M_data"))[-1];
-    if (rep == empty_rep_storage) {
-      __traits(getMember, _base, "_M_data") = dlang_empty_rep_storage._M_refdata;
+    // import std.stdio;
+    // writeln(cast(void*)rep, " == ", empty_rep(), " >= ", dlang_empty_rep_storage);
+    if (rep == empty_rep()) {
+      __traits(getMember, _base, "_M_data") = Rep._S_empty_rep()._M_refdata();//dlang_empty_rep_storage._M_refdata;
     }
   }
   static stdstring def() {

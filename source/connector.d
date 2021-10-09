@@ -49,8 +49,22 @@ class Connector {
       switch (p.type) {
       case ValueType.Bool:
         auto valueId = (*p).toValueID();
-        logInfo("%s",valueId);
         manager.SetValue(valueId,value.get!bool);
+        return;
+      case ValueType.Button:
+        auto valueId = (*p).toValueID();
+        if (value.get!bool)
+          manager.PressButton(valueId);
+        else
+          manager.ReleaseButton(valueId);
+      case ValueType.Int:
+        auto valueId = (*p).toValueID();
+        manager.SetValue(valueId,value.get!int);
+        return;
+      case ValueType.Byte:
+        auto valueId = (*p).toValueID();
+        manager.SetValue(valueId,value.get!ubyte);
+        return;
       default:
       }
     }
@@ -60,6 +74,12 @@ class Connector {
   }
   void remove(T)(auto ref T t) {
     dispatcher.remove(t);
+  }
+  void setNodeName(uint homeId, ubyte nodeId, string name) {
+    import std.stdio;
+    writeln("setNodeName, ", homeId, " ", nodeId);
+    auto n = stdstring(name);
+    manager.SetNodeName(homeId, nodeId, n);
   }
 private:
   bool running = true;
@@ -80,7 +100,7 @@ private:
     case NotificationType.DeleteButton:
     case NotificationType.ButtonOn:
     case NotificationType.ButtonOff:
-      return receiver.send(ButtonNotification(*notification));
+      return self.buttonNotification(ButtonNotification(*notification));
     case NotificationType.Notification:
       return receiver.send(ErrorNotification(*notification));
     default:
@@ -88,11 +108,11 @@ private:
     }
   }
   Manager* manager;
-  ulong getValueIdentifier(ref BasicNotification event) {
-    auto nodeId = event.valueId.nodeId;
-    auto clsId = event.valueId.commandClassId;
-    auto instance = event.valueId.instance;
-    auto index = event.valueId.index;
+  ulong getValueIdentifier(ref ValueID val) {
+    auto nodeId = val.nodeId;
+    auto clsId = val.commandClassId;
+    auto instance = val.instance;
+    auto index = val.index;
     return (cast(ulong)nodeId) << 32 | (cast(ulong)clsId) << 24 | (cast(ulong)instance) << 16 | index;
   }
   ValueContent getValueContent(ref BasicNotification event) {
@@ -117,6 +137,8 @@ private:
       short s;
       manager.GetValueAsShort(value, &s);
       return ValueContent(s);
+    } else if (value.type == ValueType.Button) {
+      return ValueContent(Button());
     } /*else if (value.type == ValueType.List) {
       stdstring str = Manager.getVersionAsString();
       logInfo(str.toDString());
@@ -147,9 +169,10 @@ private:
         ushort productId = manager.GetNodeProductId(homeId, nodeId).c_str().fromStringz()[2..$].to!ushort(16);
         auto product = manager.GetNodeProductName(homeId, nodeId).c_str().fromStringz().to!string;
         auto manufacturer = manager.GetNodeManufacturerName(homeId, nodeId).c_str().fromStringz().to!string;
+        // auto name = manager.GetNodeName(homeId, nodeId).c_str().fromStringz().to!string;
         auto type = manager.getNodeType(valueId);
         ulong id = getNodeIdentifier(valueId);
-        auto node = Node(manager.GetNodeBasic(valueId), type, type.getGenericClass, homeId, nodeId, manuId, productId, manufacturer, product, id);
+        auto node = Node(manager.GetNodeBasic(valueId), type, type.getGenericClass, homeId, nodeId, manuId, productId, manufacturer, product, null, id);
         task.tid.send(NodeAdded(node));
         return;
       // case NodeProtocolInfo:
@@ -162,9 +185,10 @@ private:
         ushort productId = manager.GetNodeProductId(homeId, nodeId).c_str().fromStringz()[2..$].to!ushort(16);
         auto product = manager.GetNodeProductName(homeId, nodeId).c_str().fromStringz().to!string;
         auto manufacturer = manager.GetNodeManufacturerName(homeId, nodeId).c_str().fromStringz().to!string;
+        auto name = manager.GetNodeName(homeId, nodeId).c_str().fromStringz().to!string;
         auto type = manager.getNodeType(valueId);
         ulong id = getNodeIdentifier(valueId);
-        auto node = Node(manager.GetNodeBasic(valueId), type, type.getGenericClass, homeId, nodeId, manuId, productId, manufacturer, product, id);
+        auto node = Node(manager.GetNodeBasic(valueId), type, type.getGenericClass, homeId, nodeId, manuId, productId, manufacturer, product, name, id);
         task.tid.send(NodeUpdated(node));
         return;
       case BasicNotificationType.NodeRemoved:
@@ -174,17 +198,17 @@ private:
       case BasicNotificationType.ValueAdded:
         auto valueId = event.valueId;
         auto label = manager.GetValueLabel(valueId).c_str().fromStringz.to!string;
-        auto id = getValueIdentifier(event);
+        auto id = getValueIdentifier(valueId);
         auto value = Value(valueId.homeId, valueId.nodeId, label, cast(CommandClass)valueId.commandClassId, valueId.instance, valueId.index, valueId.genre, valueId.type, getValueContent(event), manager.IsValueReadOnly(valueId), id);
         task.tid.send(cast(immutable)ValueAdded(value));
         return;
       case BasicNotificationType.ValueChanged:
-        auto valId = getValueIdentifier(event);
+        auto valId = getValueIdentifier(event.valueId);
         auto content = getValueContent(event);
         task.tid.send(cast(immutable)ValueChanged(valId, content));
         return;
       case BasicNotificationType.ValueRemoved:
-        auto valId = getValueIdentifier(event);
+        auto valId = getValueIdentifier(event.valueId);
         task.tid.send(ValueRemoved(valId));
         return;
       default:
