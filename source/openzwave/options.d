@@ -2,6 +2,8 @@ module openzwave.options;
 
 import openzwave.types;
 
+version (OpenZWave):
+
 extern extern (C++, "OpenZWave") {
   extern(C++, class) struct Options {
     pragma(mangle, "_ZN9OpenZWave7Options6CreateERKSsS2_S2_")

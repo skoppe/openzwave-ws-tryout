@@ -20,6 +20,7 @@ import std.concurrency;
 import std.string;
 import types;
 import connector;
+import metrics;
 
 class Logger {
   void nodeAdded(ref const Node node) {
@@ -105,6 +106,8 @@ void main() {
 
   auto connector = new Connector();
   connector.listen("/dev/ttyACM0");
+  auto metrics = new Metrics();
+  connector.add(metrics);
   connector.add(new Logger());
   auto router = new URLRouter();
   auto webSockets = WebSocketManager((scope WebSocket socket) @trusted {
@@ -145,6 +148,9 @@ void main() {
                                                                                                             }
   };
   router.get("/events", handleWebSockets(&webSockets.handle));
+  router.get("/metrics", (HTTPServerRequest req, HTTPServerResponse res){
+      res.writeBody(metrics.toOpenMetrics, "application/openmetrics-text; version=1.0.0; charset=utf-8");
+    });
   router.get("*", serveStaticFiles("public/", fileSettings));
 
   auto settings = new HTTPServerSettings();

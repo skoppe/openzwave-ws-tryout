@@ -1,8 +1,5 @@
 import dispatcher;
 import types;
-import openzwave.types;
-import openzwave.manager;
-import openzwave.valueid;
 import vibe.core.core;
 import vibe.data.json;
 import vibe.core.log;
@@ -11,6 +8,11 @@ import std.string;
 import std.conv : to;
 import core.stdcpp.string;
 
+version (unittest) {} else:
+
+                        import openzwave.types;
+import openzwave.manager;
+import openzwave.valueid;
 auto getNodeType(Manager* manager, ref const ValueID value) {
   return cast(SpecificClass)((manager.GetNodeGeneric(value) << 8) | manager.GetNodeSpecific(value));
 }

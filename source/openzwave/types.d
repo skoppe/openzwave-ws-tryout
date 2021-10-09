@@ -1,42 +1,5 @@
 module openzwave.types;
 
-// alias stdstring = basic_string!char;
-import core.stdcpp.string;
-
-// Rep* dlang_empty_rep_storage;
-
-pragma(mangle, "_ZNSs4_Rep12_S_empty_repEv")
-extern void* empty_rep();
-
-alias Rep = __traits(getMember, basic_string!(char), "_Rep");
-
-shared static this() {
-  // dlang_empty_rep_storage = cast(Rep*)(Rep._S_empty_rep_storage.ptr);
-}
-struct stdstring {
-  basic_string!char _base;
-  alias _base this;
-  this(DefaultConstruct) {
-    _base = basic_string!(char)(DefaultConstruct.value);
-  }
-  this(const(char)[] str) {
-    _base = basic_string!char(str);
-  }
-  ~this() {
-    import std.stdio;
-
-    const rep = &(cast(Rep*)__traits(getMember, _base, "_M_data"))[-1];
-    // import std.stdio;
-    // writeln(cast(void*)rep, " == ", empty_rep(), " >= ", dlang_empty_rep_storage);
-    if (rep == empty_rep()) {
-      __traits(getMember, _base, "_M_data") = Rep._S_empty_rep()._M_refdata();//dlang_empty_rep_storage._M_refdata;
-    }
-  }
-  static stdstring def() {
-    return stdstring(DefaultConstruct.value);
-  }
-}
-
 enum NotificationType {
   ValueAdded = 0, /**< A new node value has been added to OpenZWave's list. These notifications occur after a node has been discovered, and details of its command classes have been received.  Each command class may generate one or more values depending on the complexity of the item being represented.  */
   ValueRemoved, /**< A node value has been removed from OpenZWave's list.  This only occurs when a node is removed. */
@@ -248,3 +211,43 @@ enum SpecificClass : ushort {
     AdvancedZensorSmokeSensor,
     AlarmSensor
     }
+
+version (OpenZWave):
+
+  // alias stdstring = basic_string!char;
+import core.stdcpp.string;
+
+// Rep* dlang_empty_rep_storage;
+
+pragma(mangle, "_ZNSs4_Rep12_S_empty_repEv")
+extern void* empty_rep();
+
+alias Rep = __traits(getMember, basic_string!(char), "_Rep");
+
+shared static this() {
+  // dlang_empty_rep_storage = cast(Rep*)(Rep._S_empty_rep_storage.ptr);
+}
+struct stdstring {
+  basic_string!char _base;
+  alias _base this;
+  this(DefaultConstruct) {
+    _base = basic_string!(char)(DefaultConstruct.value);
+  }
+  this(const(char)[] str) {
+    _base = basic_string!char(str);
+  }
+  ~this() {
+    import std.stdio;
+
+    const rep = &(cast(Rep*)__traits(getMember, _base, "_M_data"))[-1];
+    // import std.stdio;
+    // writeln(cast(void*)rep, " == ", empty_rep(), " >= ", dlang_empty_rep_storage);
+    if (rep == empty_rep()) {
+      __traits(getMember, _base, "_M_data") = Rep._S_empty_rep()._M_refdata();//dlang_empty_rep_storage._M_refdata;
+    }
+  }
+  static stdstring def() {
+    return stdstring(DefaultConstruct.value);
+  }
+}
+

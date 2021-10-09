@@ -40,8 +40,10 @@ extern extern (C++, "OpenZWave") {
     ubyte m_event;
     ubyte m_command;
     UserAlertNotification m_useralerttype;
-    stdstring m_comport;
+    version (OpenZWave) stdstring m_comport;
   }
+  version (OpenZWave): 
+
   extern(C++, class) struct Manager {
     static Manager* Create();
     static void Destroy();
