@@ -75,7 +75,7 @@ unittest {
 alias Metric = SumType!(Gauge!long, Gauge!double, Toggle);
 
 class Metrics {
-  Metric[string] metrics;
+  Metric[ulong] metrics;
   void valueAdded(ref const Node node, ref const Value value) {
     addMetric(node, value);
   }
@@ -105,7 +105,7 @@ class Metrics {
       });
     if (metric.isNull)
       return;
-    metrics[name] = metric.get;
+    metrics[value.id] = metric.get;
   }
   string toOpenMetrics() {
     import std.array : appender;
@@ -131,5 +131,6 @@ unittest {
   value.label = "Air Temperature";
   value.value = ValueContent(23.0);
   ms.valueAdded(node, value);
-  ms.toOpenMetrics().startsWith(`air_temperature{node="Living Room"} 23`).should == true;
+  ms.toOpenMetrics().should == `air_temperature{node="Living Room", id="0"} 23
+`;
 }
