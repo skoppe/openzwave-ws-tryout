@@ -7,15 +7,15 @@ dependency "vibe-d" version="~>0.8.5"
 dependency "sumtype" version="~>0.8.13"
 dflags "-extern-std=c++11"
 versions "_GLIBCXX_USE_CXX98_ABI"
+targetType "executable"
 
 configuration "default" {
-lflags "../open-zwave/libopenzwave.a" "-lstdc++" "-lresolv"
-versions "OpenZWave"
+  lflags "../open-zwave/libopenzwave.a" "-lstdc++" "-lresolv"
+  versions "OpenZWave"
 }
 
 configuration "unittest" {
 	dependency "unit-threaded" version=">=0.0.0"
-	targetType "executable"
 	targetName "ut"
   excludedSourceFiles "source/app.d"
 	mainSourceFile "test/ut/ut_runner.d"
